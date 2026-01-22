@@ -249,4 +249,12 @@ public class Constants {
     public static final String SEARCH_KEY = "searchKey";
     public static final Character BASIC_AUTH_SEPARATOR_CHAR = ':';
 
+    public static final String ARTIFACT_TYPE = "type";
+    public static final String PROXY_SERVICE = "proxy-service";
+    public static final String ENDPOINT = "endpoint";
+    public static final String INBOUND_ENDPOINT = "inbound-endpoint";
+    public static final String MESSAGE_PROCESSOR = "message-processor";
+    public static final String API = "api";
+    public static final String SEQUENCE = "sequence";
+
 }
