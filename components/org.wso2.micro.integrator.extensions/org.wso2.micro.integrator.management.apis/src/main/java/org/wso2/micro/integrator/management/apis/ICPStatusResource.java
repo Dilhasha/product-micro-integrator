@@ -38,6 +38,7 @@ import static org.wso2.micro.integrator.management.apis.Constants.MESSAGE_PROCES
 import static org.wso2.micro.integrator.management.apis.Constants.NAME;
 import static org.wso2.micro.integrator.management.apis.Constants.PROXY_SERVICE;
 import static org.wso2.micro.integrator.management.apis.Constants.STATUS;
+import static org.wso2.micro.integrator.management.apis.Constants.TASK;
 
 /**
  * Resource class for handling artifact status changes via ICP API.
@@ -122,6 +123,9 @@ public class ICPStatusResource extends APIResource {
             case INBOUND_ENDPOINT:
                 return ArtifactStatusManager.changeInboundEndpointStatus(performedBy, messageContext, 
                                                                           axis2MessageContext, payload);
+            case TASK:
+                return ArtifactStatusManager.changeTaskStatus(performedBy, messageContext, 
+                                                               axis2MessageContext, payload);
             default:
                 return Utils.createJsonError("Unsupported artifact type: " + artifactType, 
                                             axis2MessageContext, Constants.BAD_REQUEST);

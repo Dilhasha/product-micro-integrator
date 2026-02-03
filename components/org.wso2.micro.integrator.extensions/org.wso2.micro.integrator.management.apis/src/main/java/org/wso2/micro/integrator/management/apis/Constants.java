@@ -256,5 +256,6 @@ public class Constants {
     public static final String MESSAGE_PROCESSOR = "message-processor";
     public static final String API = "api";
     public static final String SEQUENCE = "sequence";
+    public static final String TASK = "task";
 
 }

@@ -23,15 +23,17 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.ServerConfigurationInformation;
+import org.apache.synapse.Startup;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.config.SynapseConfiguration;
 import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.core.axis2.ProxyService;
 import org.apache.synapse.endpoints.AbstractEndpoint;
 import org.apache.synapse.endpoints.Endpoint;
-import org.apache.synapse.inbound.DynamicControlOperationResult;
 import org.apache.synapse.inbound.InboundEndpoint;
 import org.apache.synapse.message.processor.MessageProcessor;
+import org.apache.synapse.startup.quartz.StartUpController;
+import org.apache.synapse.util.DynamicControlOperationResult;
 import org.json.JSONObject;
 import org.wso2.micro.core.util.AuditLogger;
 
@@ -42,6 +44,7 @@ import static org.wso2.micro.integrator.management.apis.Constants.ACTIVE_STATUS;
 import static org.wso2.micro.integrator.management.apis.Constants.INACTIVE_STATUS;
 import static org.wso2.micro.integrator.management.apis.Constants.NAME;
 import static org.wso2.micro.integrator.management.apis.Constants.STATUS;
+import static org.wso2.micro.integrator.management.apis.Constants.TRIGGER_STATUS;
 
 /**
  * Utility class for managing artifact status changes across different artifact types.
@@ -54,6 +57,7 @@ public class ArtifactStatusManager {
     private static final String ENDPOINT_NAME = "endpointName";
     private static final String MESSAGE_PROCESSOR_NAME = "messageProcessorName";
     private static final String INBOUND_ENDPOINT_NAME = "inboundEndpointName";
+    private static final String TASK_NAME = "taskName";
 
     /**
      * Changes the state of a proxy service.
@@ -195,7 +199,7 @@ public class ArtifactStatusManager {
         info.put(INBOUND_ENDPOINT_NAME, name);
 
         if (INACTIVE_STATUS.equalsIgnoreCase(status)) {
-            DynamicControlOperationResult result = inboundEndpoint.deactivate();
+            org.apache.synapse.util.DynamicControlOperationResult result = inboundEndpoint.deactivate();
             if (result.isSuccess()) {
                 jsonResponse.put(Constants.MESSAGE_JSON_ATTRIBUTE, name + " : is deactivated");
                 AuditLogger.logAuditMessage(performedBy, Constants.AUDIT_LOG_TYPE_INBOUND_ENDPOINT,
@@ -205,11 +209,77 @@ public class ArtifactStatusManager {
                         Constants.INTERNAL_SERVER_ERROR);
             }
         } else if (ACTIVE_STATUS.equalsIgnoreCase(status)) {
-            DynamicControlOperationResult result = inboundEndpoint.activate();
+            org.apache.synapse.util.DynamicControlOperationResult result = inboundEndpoint.activate();
             if (result.isSuccess()) {
                 jsonResponse.put(Constants.MESSAGE_JSON_ATTRIBUTE, name + " : is activated");
                 AuditLogger.logAuditMessage(performedBy, Constants.AUDIT_LOG_TYPE_INBOUND_ENDPOINT,
                         Constants.AUDIT_LOG_ACTION_ENABLE, info);
+            } else {
+                return Utils.createJsonError(result.getMessage(), axis2MessageContext,
+                        Constants.INTERNAL_SERVER_ERROR);
+            }
+        } else {
+            return Utils.createJsonError("Provided state is not valid", axis2MessageContext,
+                    Constants.BAD_REQUEST);
+        }
+
+        return jsonResponse;
+    }
+
+    /**
+     * Changes the status of a scheduled task.
+     */
+    public static JSONObject changeTaskStatus(String performedBy, MessageContext messageContext,
+                                              org.apache.axis2.context.MessageContext axis2MessageContext,
+                                              JsonObject payload) {
+        SynapseConfiguration configuration = messageContext.getConfiguration();
+        String name = payload.get(NAME).getAsString();
+        String status = payload.get(STATUS).getAsString();
+        Startup task = configuration.getStartup(name);
+
+        if (task == null) {
+            return Utils.createJsonError("Task could not be found",
+                    axis2MessageContext, Constants.NOT_FOUND);
+        }
+
+        StartUpController controllerTask = null;
+        if (task instanceof StartUpController) {
+            controllerTask = (StartUpController) task;
+        } else {
+            return Utils.createJsonError("Task could not be found",
+                    axis2MessageContext, Constants.NOT_FOUND);
+        }
+
+        JSONObject jsonResponse = new JSONObject();
+        JSONObject info = new JSONObject();
+        info.put(TASK_NAME, name);
+
+        if (INACTIVE_STATUS.equalsIgnoreCase(status)) {
+            org.apache.synapse.util.DynamicControlOperationResult result = controllerTask.deactivate();
+            if (result.isSuccess()) {
+                jsonResponse.put(Constants.MESSAGE_JSON_ATTRIBUTE, name + " : is deactivated");
+                AuditLogger.logAuditMessage(performedBy, Constants.AUDIT_LOG_TYPE_TASK,
+                        Constants.AUDIT_LOG_ACTION_DISABLED, info);
+            } else {
+                return Utils.createJsonError(result.getMessage(), axis2MessageContext,
+                        Constants.INTERNAL_SERVER_ERROR);
+            }
+        } else if (ACTIVE_STATUS.equalsIgnoreCase(status)) {
+            org.apache.synapse.util.DynamicControlOperationResult result = controllerTask.activate();
+            if (result.isSuccess()) {
+                jsonResponse.put(Constants.MESSAGE_JSON_ATTRIBUTE, name + " : is activated");
+                AuditLogger.logAuditMessage(performedBy, Constants.AUDIT_LOG_TYPE_TASK,
+                        Constants.AUDIT_LOG_ACTION_ENABLE, info);
+            } else {
+                return Utils.createJsonError(result.getMessage(), axis2MessageContext,
+                        Constants.INTERNAL_SERVER_ERROR);
+            }
+        } else if (TRIGGER_STATUS.equalsIgnoreCase(status)) {
+            org.apache.synapse.util.DynamicControlOperationResult result = controllerTask.trigger();
+            if (result.isSuccess()) {
+                jsonResponse.put(Constants.MESSAGE_JSON_ATTRIBUTE, name + " : is triggered");
+                AuditLogger.logAuditMessage(performedBy, Constants.AUDIT_LOG_TYPE_TASK,
+                        Constants.AUDIT_LOG_ACTION_TRIGGERED, info);
             } else {
                 return Utils.createJsonError(result.getMessage(), axis2MessageContext,
                         Constants.INTERNAL_SERVER_ERROR);
