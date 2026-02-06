@@ -1132,6 +1132,8 @@ public class ICPHeartBeatComponent {
             for (org.apache.synapse.Startup startup : startups) {
                 String name = startup.getName();
                 String taskGroup = null;
+                String state = "enabled"; // default state
+                
                 try {
                     if (synapseEnv != null && synapseEnv.getTaskManager() != null
                             && synapseEnv.getTaskManager().getTaskDescriptionRepository() != null) {
@@ -1144,9 +1146,22 @@ public class ICPHeartBeatComponent {
                 } catch (Exception ignored) {
                     // If repository lookup fails, leave taskGroup null
                 }
+                
+                // Check task state
+                try {
+                    if (startup instanceof org.apache.synapse.startup.quartz.StartUpController) {
+                        org.apache.synapse.startup.quartz.StartUpController controller = 
+                            (org.apache.synapse.startup.quartz.StartUpController) startup;
+                        // isTaskActive() returns true when task is active/running
+                        state = controller.isTaskActive() ? "enabled" : "disabled";
+                    }
+                } catch (Exception ignored) {
+                    // If state check fails, keep default "enabled"
+                }
 
                 JsonObject taskObj = new JsonObject();
                 taskObj.addProperty("name", name);
+                taskObj.addProperty("state", state);
                 if (taskGroup != null) {
                     taskObj.addProperty("taskGroup", taskGroup);
                 } else {
