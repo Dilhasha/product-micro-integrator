@@ -403,40 +403,49 @@ public class ICPHeartBeatComponent {
                 return createEmptyArtifactsStructure();
             }
 
+            // Get carbon apps list once to avoid multiple calls
+            Collection<CarbonApplication> carbonApps = null;
+            try {
+                carbonApps = CappDeployer.getCarbonApps();
+            } catch (Exception e) {
+                log.debug("Error getting carbon apps list, proceeding without carbon app mapping", e);
+                carbonApps = new java.util.ArrayList<>();
+            }
+
             // Collect all artifact types as available in Management API
 
             // 1. REST APIs
-            artifacts.add("apis", collectRestApis(synapseConfig));
+            artifacts.add("apis", collectRestApis(synapseConfig, carbonApps));
 
             // 2. Proxy Services
-            artifacts.add("proxyServices", collectProxyServices(synapseConfig));
+            artifacts.add("proxyServices", collectProxyServices(synapseConfig, carbonApps));
 
             // 3. Endpoints
-            artifacts.add("endpoints", collectEndpoints(synapseConfig));
+            artifacts.add("endpoints", collectEndpoints(synapseConfig, carbonApps));
 
             // 4. Inbound Endpoints
-            artifacts.add("inboundEndpoints", collectInboundEndpoints(synapseConfig));
+            artifacts.add("inboundEndpoints", collectInboundEndpoints(synapseConfig, carbonApps));
 
             // 5. Sequences
-            artifacts.add("sequences", collectSequences(synapseConfig));
+            artifacts.add("sequences", collectSequences(synapseConfig, carbonApps));
 
             // 6. Tasks
-            artifacts.add("tasks", collectTasks(synapseConfig));
+            artifacts.add("tasks", collectTasks(synapseConfig, carbonApps));
 
             // 7. Templates
-            artifacts.add("templates", collectTemplates(synapseConfig));
+            artifacts.add("templates", collectTemplates(synapseConfig, carbonApps));
 
             // 8. Message Stores
-            artifacts.add("messageStores", collectMessageStores(synapseConfig));
+            artifacts.add("messageStores", collectMessageStores(synapseConfig, carbonApps));
 
             // 9. Message Processors
-            artifacts.add("messageProcessors", collectMessageProcessors(synapseConfig));
+            artifacts.add("messageProcessors", collectMessageProcessors(synapseConfig, carbonApps));
 
             // 10. Local Entries
-            artifacts.add("localEntries", collectLocalEntries(synapseConfig));
+            artifacts.add("localEntries", collectLocalEntries(synapseConfig, carbonApps));
 
             // 11. Data Services (requires separate access)
-            artifacts.add("dataServices", collectDataServices(synapseConfig));
+            artifacts.add("dataServices", collectDataServices(synapseConfig, carbonApps));
 
             // 12. Carbon Applications (requires separate access)
             artifacts.add("carbonApps", collectCarbonApps());
@@ -445,10 +454,10 @@ public class ICPHeartBeatComponent {
             artifacts.add("dataSources", collectDataSources());
 
             // 14. Connectors (requires separate access)
-            artifacts.add("connectors", collectConnectors(synapseConfig));
+            artifacts.add("connectors", collectConnectors(synapseConfig, carbonApps));
 
             // 15. Registry Resources (requires separate access)
-            artifacts.add("registryResources", collectRegistryResources(synapseConfig));
+            artifacts.add("registryResources", collectRegistryResources(synapseConfig, carbonApps));
             
         } catch (Exception e) {
             log.error("Error collecting artifacts from MI configuration.", e);
@@ -824,7 +833,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects REST API information from Synapse Configuration
      */
-    private static JsonArray collectRestApis(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectRestApis(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray apis = new JsonArray();
         try {
             Collection<API> apiCollection = synapseConfig.getAPIs();
@@ -836,6 +845,12 @@ public class ICPHeartBeatComponent {
                 apiObj.addProperty("host", api.getHost());
                 apiObj.addProperty("port", api.getPort());
                 apiObj.addProperty("type", "API");
+
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(api.getName(), "api", carbonApps);
+                if (carbonApp != null) {
+                    apiObj.addProperty("carbonApp", carbonApp);
+                }
 
                 // Tracing flag via AspectConfiguration
                 try {
@@ -882,7 +897,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Proxy Service information from Synapse Configuration
      */
-    private static JsonArray collectProxyServices(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectProxyServices(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray proxies = new JsonArray();
         try {
             Collection<ProxyService> proxyCollection = synapseConfig.getProxyServices();
@@ -892,6 +907,12 @@ public class ICPHeartBeatComponent {
                 proxyObj.addProperty("type", "ProxyService");
                 // Align with Management API: lowercase enabled/disabled
                 proxyObj.addProperty("state", proxy.isRunning() ? "enabled" : "disabled");
+
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(proxy.getName(), "proxy-service", carbonApps);
+                if (carbonApp != null) {
+                    proxyObj.addProperty("carbonApp", carbonApp);
+                }
 
                 // Tracing and statistics as per AspectConfiguration
                 try {
@@ -934,7 +955,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Endpoint information from Synapse Configuration
      */
-    private static JsonArray collectEndpoints(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectEndpoints(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray endpoints = new JsonArray();
         try {
             Map<String, org.apache.synapse.endpoints.Endpoint> endpointMap = synapseConfig.getDefinedEndpoints();
@@ -944,6 +965,12 @@ public class ICPHeartBeatComponent {
                 endpointObj.addProperty("name", entry.getKey());
                 String typeName = endpoint.getClass().getSimpleName();
                 endpointObj.addProperty("type", typeName);
+                
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(entry.getKey(), "endpoint", carbonApps);
+                if (carbonApp != null) {
+                    endpointObj.addProperty("carbonApp", carbonApp);
+                }
                 try {
                     boolean activated = endpoint.readyToSend();
                     endpointObj.addProperty("state", activated ? "enabled" : "disabled");
@@ -1037,7 +1064,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Inbound Endpoint information
      */
-    private static JsonArray collectInboundEndpoints(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectInboundEndpoints(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray inboundEndpoints = new JsonArray();
         try {
             Collection<org.apache.synapse.inbound.InboundEndpoint> inboundCollection = synapseConfig
@@ -1046,6 +1073,12 @@ public class ICPHeartBeatComponent {
                 JsonObject inboundObj = new JsonObject();
                 inboundObj.addProperty("name", inbound.getName());
                 inboundObj.addProperty("protocol", inbound.getProtocol());
+                
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(inbound.getName(), "inbound-endpoint", carbonApps);
+                if (carbonApp != null) {
+                    inboundObj.addProperty("carbonApp", carbonApp);
+                }
                 // State aligned with Management API logic
                 try {
                     boolean deactivated = inbound.isDeactivated();
@@ -1094,7 +1127,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Sequence information from Synapse Configuration
      */
-    private static JsonArray collectSequences(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectSequences(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray sequences = new JsonArray();
         try {
             Map<String, org.apache.synapse.mediators.base.SequenceMediator> seqMap = synapseConfig
@@ -1104,6 +1137,12 @@ public class ICPHeartBeatComponent {
                 org.apache.synapse.mediators.base.SequenceMediator sequence = entry.getValue();
                 seqObj.addProperty("name", entry.getKey());
                 seqObj.addProperty("type", "Sequence");
+                
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(entry.getKey(), "sequence", carbonApps);
+                if (carbonApp != null) {
+                    seqObj.addProperty("carbonApp", carbonApp);
+                }
                 // Tracing flag via AspectConfiguration
                 try {
                     if (sequence.getAspectConfiguration() != null) {
@@ -1122,7 +1161,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Task information from Synapse Configuration
      */
-    private static JsonArray collectTasks(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectTasks(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray tasks = new JsonArray();
         try {
             // Obtain SynapseEnvironment to access TaskDescriptionRepository
@@ -1162,6 +1201,13 @@ public class ICPHeartBeatComponent {
                 JsonObject taskObj = new JsonObject();
                 taskObj.addProperty("name", name);
                 taskObj.addProperty("state", state);
+                
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(name, "task", carbonApps);
+                if (carbonApp != null) {
+                    taskObj.addProperty("carbonApp", carbonApp);
+                }
+                
                 if (taskGroup != null) {
                     taskObj.addProperty("taskGroup", taskGroup);
                 } else {
@@ -1178,7 +1224,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Template information from Synapse Configuration
      */
-    private static JsonArray collectTemplates(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectTemplates(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray templates = new JsonArray();
         try {
             // Endpoint Templates
@@ -1187,6 +1233,13 @@ public class ICPHeartBeatComponent {
                 JsonObject templateObj = new JsonObject();
                 templateObj.addProperty("name", entry.getKey());
                 templateObj.addProperty("type", Constants.ENDPOINT_TEMPLATE_TYPE);
+                
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(entry.getKey(), "template", carbonApps);
+                if (carbonApp != null) {
+                    templateObj.addProperty("carbonApp", carbonApp);
+                }
+                
                 templates.add(templateObj);
             }
             //Sequence Templates
@@ -1196,6 +1249,13 @@ public class ICPHeartBeatComponent {
                 JsonObject templateObj = new JsonObject();
                 templateObj.addProperty("name", entry.getKey());
                 templateObj.addProperty("type", Constants.SEQUENCE_TEMPLATE_TYPE);
+                
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(entry.getKey(), "template", carbonApps);
+                if (carbonApp != null) {
+                    templateObj.addProperty("carbonApp", carbonApp);
+                }
+                
                 templates.add(templateObj);
             }
         } catch (Exception e) {
@@ -1207,7 +1267,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Message Store information from Synapse Configuration
      */
-    private static JsonArray collectMessageStores(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectMessageStores(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray messageStores = new JsonArray();
         try {
             Map<String, org.apache.synapse.message.store.MessageStore> storeMap = synapseConfig.getMessageStores();
@@ -1217,6 +1277,13 @@ public class ICPHeartBeatComponent {
                 storeObj.addProperty("name", entry.getKey());
                 storeObj.addProperty("type", store.getClass().getSimpleName());
                 storeObj.addProperty("size", store.size());
+                
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(entry.getKey(), "message-store", carbonApps);
+                if (carbonApp != null) {
+                    storeObj.addProperty("carbonApp", carbonApp);
+                }
+                
                 messageStores.add(storeObj);
             }
         } catch (Exception e) {
@@ -1228,7 +1295,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Message Processor information from Synapse Configuration
      */
-    private static JsonArray collectMessageProcessors(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectMessageProcessors(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray messageProcessors = new JsonArray();
         try {
             Map<String, org.apache.synapse.message.processor.MessageProcessor> processorMap = synapseConfig
@@ -1239,6 +1306,13 @@ public class ICPHeartBeatComponent {
                 org.apache.synapse.message.processor.MessageProcessor processor = entry.getValue();
                 processorObj.addProperty("name", entry.getKey());
                 processorObj.addProperty("type", processor.getClass().getSimpleName());
+                
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(entry.getKey(), "message-processors", carbonApps);
+                if (carbonApp != null) {
+                    processorObj.addProperty("carbonApp", carbonApp);
+                }
+                
                 try {
                     boolean deactivated = processor.isDeactivated();
                     processorObj.addProperty("state", deactivated ? "disabled" : "enabled");
@@ -1267,7 +1341,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Local Entry information from Synapse Configuration
      */
-    private static JsonArray collectLocalEntries(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectLocalEntries(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray localEntries = new JsonArray();
         try {
             Map<String, org.apache.synapse.config.Entry> definedEntries = synapseConfig.getDefinedEntries();
@@ -1281,6 +1355,13 @@ public class ICPHeartBeatComponent {
                 org.apache.synapse.config.Entry entry = e.getValue();
                 JsonObject entryObj = new JsonObject();
                 entryObj.addProperty("name", key);
+                
+                // Add carbon app name
+                String carbonApp = findCarbonAppForArtifact(key, "local-entry", carbonApps);
+                if (carbonApp != null) {
+                    entryObj.addProperty("carbonApp", carbonApp);
+                }
+                
                 String entryType;
                 switch (entry.getType()) {
                     case org.apache.synapse.config.Entry.REMOTE_ENTRY:
@@ -1311,7 +1392,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Data Service information from Synapse Configuration
      */
-    private static JsonArray collectDataServices(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectDataServices(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray dataServices = new JsonArray();
         try {
             if (synapseConfig == null || synapseConfig.getAxisConfiguration() == null) {
@@ -1330,6 +1411,12 @@ public class ICPHeartBeatComponent {
                 try {
                     dsObj.addProperty("name", serviceName);
                     dsObj.addProperty("type", "DataService");
+
+                    // Add carbon app name
+                    String carbonApp = findCarbonAppForArtifact(serviceName, "dataservice", carbonApps);
+                    if (carbonApp != null) {
+                        dsObj.addProperty("carbonApp", carbonApp);
+                    }
 
                     // Try to get the DataService object for more details
                     AxisService axisService = axisConfiguration.getServiceForActivation(serviceName);
@@ -1381,6 +1468,44 @@ public class ICPHeartBeatComponent {
             log.error("Error collecting Data Services", e);
         }
         return dataServices;
+    }
+
+    /**
+     * Finds the carbon app that contains a specific artifact by name and type.
+     * 
+     * @param artifactName the name of the artifact
+     * @param artifactType the type of the artifact (e.g., "api", "proxy-service", "endpoint")
+     * @param carbonApps the collection of carbon applications to search in
+     * @return the carbon app name if found, null otherwise
+     */
+    private static String findCarbonAppForArtifact(String artifactName, String artifactType, Collection<CarbonApplication> carbonApps) {
+        try {
+            for (CarbonApplication carbonApp : carbonApps) {
+                if (carbonApp.getAppConfig() != null &&
+                        carbonApp.getAppConfig().getApplicationArtifact() != null &&
+                        carbonApp.getAppConfig().getApplicationArtifact().getDependencies() != null) {
+                    List<Artifact.Dependency> dependencies = carbonApp.getAppConfig().getApplicationArtifact()
+                            .getDependencies();
+                    for (Artifact.Dependency dependency : dependencies) {
+                        Artifact artifact = dependency.getArtifact();
+                        if (artifact != null && artifact.getName() != null) {
+                            // Extract artifact type (remove prefix if present)
+                            String type = artifact.getType();
+                            if (type != null && type.contains("/")) {
+                                type = type.split("/")[1];
+                            }
+                            // Match by name and type
+                            if (artifactName.equals(artifact.getName()) && artifactType.equalsIgnoreCase(type)) {
+                                return carbonApp.getAppName();
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Error finding carbon app for artifact: " + artifactName, e);
+        }
+        return null;
     }
 
     /**
@@ -1622,7 +1747,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Connector information from Synapse Configuration
      */
-    private static JsonArray collectConnectors(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectConnectors(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray connectors = new JsonArray();
         try {
             log.info("Starting connector collection for ICP heartbeat");
@@ -1656,6 +1781,13 @@ public class ICPHeartBeatComponent {
                         JsonObject connectorObj = new JsonObject();
                         connectorObj.addProperty("name", synapseLibrary.getName());
                         connectorObj.addProperty("package", synapseLibrary.getPackage());
+                        
+                        // Add carbon app name
+                        String carbonApp = findCarbonAppForArtifact(synapseLibrary.getQName().toString(), "lib/synapse/import", carbonApps);
+                        if (carbonApp != null) {
+                            connectorObj.addProperty("carbonApp", carbonApp);
+                        }
+                        
                         // Add description if available
                         if (synapseLibrary.getDescription() != null) {
                             connectorObj.addProperty("description", synapseLibrary.getDescription());
@@ -1700,7 +1832,7 @@ public class ICPHeartBeatComponent {
     /**
      * Collects Registry Resources from MicroIntegratorRegistry
      */
-    private static JsonArray collectRegistryResources(SynapseConfiguration synapseConfig) {
+    private static JsonArray collectRegistryResources(SynapseConfiguration synapseConfig, Collection<CarbonApplication> carbonApps) {
         JsonArray registryResources = new JsonArray();
         log.info("Starting registry resources collection for ICP heartbeat");
         if (synapseConfig == null) {

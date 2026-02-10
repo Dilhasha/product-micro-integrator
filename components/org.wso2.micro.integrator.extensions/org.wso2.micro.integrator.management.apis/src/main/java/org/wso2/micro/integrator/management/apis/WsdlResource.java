@@ -108,15 +108,30 @@ public class WsdlResource extends APIResource {
         }
 
         try {
-            OMElement wsdl;
+            OMElement wsdl = null;
 
             // Try to fetch actual WSDL from service URL derived via internal config
             String wsdlUrl = buildServiceWsdlUrl(axisMsgCtx, targetName);
             String wsdlText = fetchUrl(wsdlUrl, 5000);
-            if (wsdlText != null && !wsdlText.isEmpty()) {
-                wsdl = AXIOMUtil.stringToOM(wsdlText);
+            
+            if (wsdlText != null && !wsdlText.trim().isEmpty()) {
+                try {
+                    wsdl = AXIOMUtil.stringToOM(wsdlText);
+                } catch (Exception e) {
+                    LOG.error("Failed to parse WSDL XML from URL: " + wsdlUrl, e);
+                    Utils.setJsonPayLoad(axisMsgCtx,
+                            Utils.createJsonError("Failed to parse WSDL XML: " + e.getMessage(),
+                                    axisMsgCtx, Constants.INTERNAL_SERVER_ERROR));
+                    return true;
+                }
             } else {
-                wsdl = AXIOMUtil.stringToOM("");
+                // WSDL fetch failed or returned empty response
+                String kind = isProxyRequest ? "proxy service" : "data service";
+                Utils.setJsonPayLoad(axisMsgCtx,
+                        Utils.createJsonError("Unable to fetch WSDL for " + kind + ": " + targetName + 
+                                ". Service may not be running or WSDL URL is not accessible.",
+                                axisMsgCtx, Constants.INTERNAL_SERVER_ERROR));
+                return true;
             }
 
             // Set XML payload
@@ -131,7 +146,7 @@ public class WsdlResource extends APIResource {
             axisMsgCtx.removeProperty(Constants.NO_ENTITY_BODY);
 
         } catch (Exception e) {
-            LOG.error("Error fetching WSDL for data service: " + serviceName, e);
+            LOG.error("Error fetching WSDL for " + (isProxyRequest ? "proxy" : "data service") + ": " + targetName, e);
             Utils.setJsonPayLoad(axisMsgCtx,
                     Utils.createJsonError("Error fetching WSDL: " + e.getMessage(),
                             axisMsgCtx, Constants.INTERNAL_SERVER_ERROR));

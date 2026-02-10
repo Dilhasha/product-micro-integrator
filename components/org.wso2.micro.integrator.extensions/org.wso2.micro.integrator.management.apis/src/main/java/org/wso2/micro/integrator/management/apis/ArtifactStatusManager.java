@@ -19,26 +19,20 @@
 package org.wso2.micro.integrator.management.apis;
 
 import com.google.gson.JsonObject;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.ServerConfigurationInformation;
 import org.apache.synapse.Startup;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.config.SynapseConfiguration;
-import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.core.axis2.ProxyService;
-import org.apache.synapse.endpoints.AbstractEndpoint;
 import org.apache.synapse.endpoints.Endpoint;
 import org.apache.synapse.inbound.InboundEndpoint;
 import org.apache.synapse.message.processor.MessageProcessor;
 import org.apache.synapse.startup.quartz.StartUpController;
-import org.apache.synapse.util.DynamicControlOperationResult;
 import org.json.JSONObject;
 import org.wso2.micro.core.util.AuditLogger;
 
 import java.util.List;
-import java.util.Objects;
 
 import static org.wso2.micro.integrator.management.apis.Constants.ACTIVE_STATUS;
 import static org.wso2.micro.integrator.management.apis.Constants.INACTIVE_STATUS;
@@ -52,7 +46,6 @@ import static org.wso2.micro.integrator.management.apis.Constants.TRIGGER_STATUS
  */
 public class ArtifactStatusManager {
 
-    private static final Log LOG = LogFactory.getLog(ArtifactStatusManager.class);
     private static final String PROXY_SERVICE_NAME = "proxyServiceName";
     private static final String ENDPOINT_NAME = "endpointName";
     private static final String MESSAGE_PROCESSOR_NAME = "messageProcessorName";
