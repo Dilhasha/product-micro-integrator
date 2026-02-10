@@ -182,6 +182,22 @@ public class Constants {
     public static final String AUDIT_LOG_TYPE_REGISTRY_RESOURCE = "registry_resource";
     public static final String AUDIT_LOG_TYPE_REGISTRY_RESOURCE_PROPERTIES = "registry_resource_properties";
 
+    // Audit log types for tracing
+    public static final String AUDIT_LOG_TYPE_PROXY_SERVICE_TRACE = "proxy_service_trace";
+    public static final String AUDIT_LOG_TYPE_ENDPOINT_TRACE = "endpoint_trace";
+    public static final String AUDIT_LOG_TYPE_INBOUND_ENDPOINT_TRACE = "inbound_endpoint_trace";
+    public static final String AUDIT_LOG_TYPE_API_TRACE = "api_trace";
+    public static final String AUDIT_LOG_TYPE_SEQUENCE_TRACE = "sequence_trace";
+    public static final String AUDIT_LOG_TYPE_SEQUENCE_TEMPLATE_TRACE = "sequence_template_trace";
+
+    // Audit log types for statistics
+    public static final String AUDIT_LOG_TYPE_PROXY_SERVICE_STATISTICS = "proxy_service_statistics";
+    public static final String AUDIT_LOG_TYPE_ENDPOINT_STATISTICS = "endpoint_statistics";
+    public static final String AUDIT_LOG_TYPE_INBOUND_ENDPOINT_STATISTICS = "inbound_endpoint_statistics";
+    public static final String AUDIT_LOG_TYPE_API_STATISTICS = "api_statistics";
+    public static final String AUDIT_LOG_TYPE_SEQUENCE_STATISTICS = "sequence_statistics";
+    public static final String AUDIT_LOG_TYPE_SEQUENCE_TEMPLATE_STATISTICS = "sequence_template_statistics";
+
     public static final String PROXY_SERVICES = "proxy-services";
     public static final String NODES = "nodes";
     public static final String APIS = "apis";

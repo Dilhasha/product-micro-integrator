@@ -48,6 +48,7 @@ public class ICPInternalApi implements InternalAPI {
         resourcesList.add(new ICPGetParamsResource(PREFIX_ARTIFACTS + "/parameters"));
         resourcesList.add(new ICPStatusResource(PREFIX_ARTIFACTS + "/status"));
         resourcesList.add(new ICPTracingResource(PREFIX_ARTIFACTS + "/tracing"));
+        resourcesList.add(new ICPStatisticsResource(PREFIX_ARTIFACTS + "/statistics"));
         resources = resourcesList.toArray(new APIResource[resourcesList.size()]);
     }
 
