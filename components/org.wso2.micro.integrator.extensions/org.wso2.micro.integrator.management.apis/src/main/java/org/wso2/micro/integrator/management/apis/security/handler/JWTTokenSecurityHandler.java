@@ -28,6 +28,7 @@ import org.wso2.micro.integrator.security.user.api.UserStoreException;
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 
+import static org.wso2.micro.integrator.management.apis.Constants.ICP_AUTHENTICATED_PROPERTY;
 import static org.wso2.micro.integrator.management.apis.Constants.USERNAME_PROPERTY;
 
 public class JWTTokenSecurityHandler extends AuthenticationHandlerAdapter {
@@ -60,6 +61,11 @@ public class JWTTokenSecurityHandler extends AuthenticationHandlerAdapter {
 
     @Override
     protected Boolean authenticate(MessageContext messageContext, String authHeaderToken) {
+
+        if (Boolean.TRUE.equals(messageContext.getProperty(ICP_AUTHENTICATED_PROPERTY))) {
+            // Already authenticated by ICPJWTAuthHandler — skip JWT store validation
+            return true;
+        }
 
         if ((Constants.REST_API_CONTEXT + Constants.PREFIX_LOGIN).contentEquals(messageContext.getTo().getAddress())) {
             //Login request is basic auth

@@ -58,6 +58,9 @@
         <api name="LivenessProbe" protocol="{{liveness_probe.protocols}}" class="org.wso2.micro.integrator.probes.LivenessProbe"/>
         <api name="ManagementApi" protocol="{{management_api.protocols}}" class="org.wso2.micro.integrator.management.apis.ManagementInternalApi">
             <handlers>
+                {% if icp_config is defined and icp_config.enabled == true %}
+                <handler name="ICPJWTAuthHandler" class="org.wso2.micro.integrator.icp.apis.security.handler.ICPJWTAuthHandler"/>
+                {% endif %}
                 {% if management_api.basic_security_handler.enable == true %}
                 <handler name="BasicSecurityHandler" class="org.wso2.micro.integrator.management.apis.security.handler.BasicSecurityHandler"/>
                 {% endif %}

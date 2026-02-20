@@ -32,6 +32,7 @@ import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.util.Objects;
 
+import static org.wso2.micro.integrator.management.apis.Constants.ICP_AUTHENTICATED_PROPERTY;
 import static org.wso2.micro.integrator.management.apis.Constants.USERNAME_PROPERTY;
 
 /**
@@ -48,6 +49,11 @@ public abstract class AuthorizationHandlerAdapter extends SecurityHandlerAdapter
 
     @Override
     public Boolean handle(MessageContext messageContext) {
+        if (Boolean.TRUE.equals(messageContext.getProperty(ICP_AUTHENTICATED_PROPERTY))) {
+            // Already authenticated by ICPJWTAuthHandler — skip admin authorization check
+            return true;
+        }
+
         String userName = Utils.getStringPropertyFromMessageContext(messageContext, USERNAME_PROPERTY);
 
         String resourcePath = messageContext.getTo().getAddress();
