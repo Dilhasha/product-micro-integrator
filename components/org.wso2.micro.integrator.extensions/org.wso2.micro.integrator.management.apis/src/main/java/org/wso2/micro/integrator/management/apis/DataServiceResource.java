@@ -98,7 +98,7 @@ public class DataServiceResource extends APIResource {
             log.debug("Handling fault detail request for data service: " + pathParamName);
             try {
                 populateFaultyDataServiceData(msgCtx, pathParamName);
-            } catch (Exception exception) {
+            } catch (RuntimeException exception) {
                 log.error("Error while populating faulty data service: ", exception);
                 msgCtx.setProperty(Constants.HTTP_STATUS_CODE, Constants.INTERNAL_SERVER_ERROR);
             }
