@@ -2232,7 +2232,7 @@
         <orbit.version.poi>3.17.0.wso2v1</orbit.version.poi>
         <orbit.version.poi.scratchpad>5.5.1.wso2v1</orbit.version.poi.scratchpad>
         <slf4j.version>1.7.36</slf4j.version>
-        <version.log4j.core>2.26.1</version.log4j.core>
+        <version.log4j.core>2.25.4</version.log4j.core>
         <version.jaxb>2.2.5.wso2v1</version.jaxb>
         <javasysmon.version>0.3.3.wso2v1</javasysmon.version>
         <version.eclipse.ecj>4.4.2</version.eclipse.ecj>
@@ -2281,7 +2281,7 @@
         <google.guava.version>33.6.0-jre</google.guava.version>
         <ca.uhn.hapi.wso2.version>2.4.0.wso2v2</ca.uhn.hapi.wso2.version>
         <junit.version>4.12</junit.version>
-        <netty.wso2.version>4.2.12.wso2v1</netty.wso2.version>
+        <netty.wso2.version>4.2.16.wso2v1</netty.wso2.version>
         <netty.tcnative.version>2.0.80.Final</netty.tcnative.version>
         <jacoco.agent.version>0.8.12</jacoco.agent.version>
         <activemq.version>5.2.0</activemq.version>
