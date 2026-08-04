@@ -467,12 +467,18 @@ public class ICPHeartBeatComponent {
             Collection<CarbonApplication> carbonApps = new java.util.ArrayList<>();
             try {
                 carbonApps.addAll(CappDeployer.getCarbonApps());
+            } catch (Exception e) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Error getting active carbon apps list, proceeding without their mapping", e);
+                }
+            }
+            try {
                 // Include faulty CApp objects so artifacts from failed CARs
                 // (e.g. faulty data services) can still be mapped to their CApp.
                 carbonApps.addAll(CappDeployer.getFaultyCAppObjects());
             } catch (Exception e) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Error getting carbon apps list, proceeding without carbon app mapping", e);
+                    log.debug("Error getting faulty carbon apps list, proceeding without their mapping", e);
                 }
             }
             Map<String, String> artifactCappMap = buildArtifactToCappMap(carbonApps);
