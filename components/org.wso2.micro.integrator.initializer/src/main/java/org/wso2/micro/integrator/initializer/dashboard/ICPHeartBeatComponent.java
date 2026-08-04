@@ -464,14 +464,16 @@ public class ICPHeartBeatComponent {
                 return createEmptyArtifactsStructure();
             }
 
-            Collection<CarbonApplication> carbonApps;
+            Collection<CarbonApplication> carbonApps = new java.util.ArrayList<>();
             try {
-                carbonApps = CappDeployer.getCarbonApps();
+                carbonApps.addAll(CappDeployer.getCarbonApps());
+                // Include faulty CApp objects so artifacts from failed CARs
+                // (e.g. faulty data services) can still be mapped to their CApp.
+                carbonApps.addAll(CappDeployer.getFaultyCAppObjects());
             } catch (Exception e) {
                 if (log.isDebugEnabled()) {
                     log.debug("Error getting carbon apps list, proceeding without carbon app mapping", e);
                 }
-                carbonApps = new java.util.ArrayList<>();
             }
             Map<String, String> artifactCappMap = buildArtifactToCappMap(carbonApps);
 
